@@ -1,12 +1,47 @@
-const http = require('http');
-const port = process.env.PORT || 3000;
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
 
-const server = http.createServer((req, res) => {
-  res.statusCode = 200;
-  const msg = 'Hello Node!\n'
-  res.end(msg);
+const app = express();
+const PORT = 3000;
+
+// Path to your JSON database
+const DB_PATH = path.join(__dirname, "db.json");
+
+// Ensure db.json exists
+if (!fs.existsSync(DB_PATH)) {
+    fs.writeFileSync(DB_PATH, JSON.stringify({ key: "" }, null, 2));
+}
+
+// Helper to read the JSON file
+function readDB() {
+    const data = fs.readFileSync(DB_PATH, "utf8");
+    return JSON.parse(data);
+}
+
+// Helper to write to the JSON file
+function writeDB(data) {
+    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+}
+
+app.get("/", (req, res) => {
+    const db = readDB();
+    res.send(db.key);
 });
 
-server.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}/`);
+app.get("/update", (req, res) => {
+    const newValue = req.query.key;
+    if (!newValue) {
+        return res.status(400).send("Please provide a 'key' query parameter");
+    }
+
+    const db = readDB();
+    db.key = newValue;
+    writeDB(db);
+
+    res.send(`Key updated to: ${newValue}`);
+});
+
+app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
 });
